@@ -19,6 +19,14 @@ class ReportGenerator:
             await f.write(f"Images Extracted: {len(results['images'])}\n")
             await f.write(f"Tables Extracted: {len(results['tables'])}\n\n")
             
+            await f.write("EXECUTION TIMES:\n")
+            await f.write(f"- Image Extraction: {results['execution_times']['image_extraction']:.2f} seconds\n")
+            await f.write(f"- Table Extraction: {results['execution_times']['table_extraction']:.2f} seconds\n")
+            await f.write(f"- Text Extraction: {results['execution_times']['text_extraction']:.2f} seconds\n\n")
+            
+            total_time = sum(results['execution_times'].values())
+            await f.write(f"Total Extraction Time: {total_time:.2f} seconds\n\n")
+            
             await f.write("FILES CREATED:\n")
             await f.write("- images/ (PNG files)\n")
             await f.write("- tables/ (CSV files)\n")

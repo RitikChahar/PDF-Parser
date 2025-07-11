@@ -35,6 +35,12 @@ async def process_single_pdf(pdf_path: str, base_output_dir: str, semaphore: asy
                     await f.write("PDF PROCESSING SUMMARY\n")
                     await f.write("=" * 50 + "\n")
                 await f.write(f"{pdf_filename} - {total_pages} pages - {pdf_execution_time:.2f} seconds\n")
+                await f.write(f"  Image Extraction: {results['execution_times']['image_extraction']:.2f}s\n")
+                await f.write(f"  Table Extraction: {results['execution_times']['table_extraction']:.2f}s\n")
+                await f.write(f"  Text Extraction: {results['execution_times']['text_extraction']:.2f}s\n")
+                await f.write(f"  Images Found: {len(results['images'])}\n")
+                await f.write(f"  Tables Found: {len(results['tables'])}\n")
+                await f.write("-" * 30 + "\n")
             
             log_success(f"Completed {pdf_filename} in {pdf_execution_time:.2f} seconds")
             return 1
