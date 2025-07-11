@@ -1,0 +1,13 @@
+[project]
+name = "pdf-playground"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles>=24.1.0",
+    "camelot-py>=1.0.0",
+    "ghostscript>=0.8.1",
+    "logger>=1.4",
+    "pymupdf>=1.26.3",
+]
