@@ -1,8 +1,7 @@
 import camelot
 import os
 import asyncio
-import tempfile
-import shutil
+import io
 from pathlib import Path
 
 class TableExtractor:
@@ -16,15 +15,16 @@ class TableExtractor:
 
     def _extract_tables_sync(self):
         tables_data = []
-        temp_dir = tempfile.mkdtemp()
         
         try:
-            temp_pdf_path = os.path.join(temp_dir, "temp.pdf")
-            shutil.copy2(self.pdf_path, temp_pdf_path)
-
+            with open(self.pdf_path, 'rb') as pdf_file:
+                pdf_data = pdf_file.read()
+            
+            pdf_stream = io.BytesIO(pdf_data)
+            
             try:
                 tables = camelot.read_pdf(
-                    temp_pdf_path,
+                    pdf_stream,
                     pages='all',
                     flavor='lattice',
                     line_scale=30,
@@ -50,9 +50,10 @@ class TableExtractor:
                 tables_data = []
 
             if not tables_data:
+                pdf_stream.seek(0)
                 try:
                     tables = camelot.read_pdf(
-                        temp_pdf_path,
+                        pdf_stream,
                         pages='all',
                         flavor='stream',
                         edge_tol=50,
@@ -77,8 +78,8 @@ class TableExtractor:
                 except Exception:
                     pass
                     
-        finally:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
             
         return tables_data
 

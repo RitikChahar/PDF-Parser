@@ -22,5 +22,5 @@ class ReportGenerator:
             await f.write("FILES CREATED:\n")
             await f.write("- images/ (PNG files)\n")
             await f.write("- tables/ (CSV files)\n")
-            await f.write("- text/ (TXT files with layout preserved and continuous)\n")
+            await f.write("- text/ (TXT file with continuous text)\n")
             await f.write("- extraction_summary.txt (this file)\n")

@@ -30,7 +30,6 @@ class PDFParser:
             self.doc = None
     
     async def extract_images(self) -> List[Dict]:
-        self._open_document()
         image_extractor = ImageExtractor(self.doc, self.output_dir)
         return await image_extractor.extract()
     
@@ -38,7 +37,6 @@ class PDFParser:
         return await self.table_extractor.extract()
     
     async def extract_text(self) -> Dict:
-        self._open_document()
         text_extractor = TextExtractor(self.doc, self.output_dir)
         return await text_extractor.extract()
     

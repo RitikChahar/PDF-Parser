@@ -15,7 +15,7 @@ class TextExtractor:
         async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
             await f.write(text)
     
-    def _extract_column_text(self, page):
+    def _extract_continuous_text(self, page):
         page_dict = page.get_text("dict")
         page_width = page.rect.width
         text_blocks = []
@@ -38,7 +38,7 @@ class TextExtractor:
                 })
         
         if not text_blocks:
-            return "", ""
+            return ""
         
         text_blocks.sort(key=lambda b: (b["x0"], b["y0"]))
         
@@ -64,18 +64,13 @@ class TextExtractor:
         
         columns.sort(key=lambda col: min(b["x0"] for b in col))
         
-        layout_lines = []
         continuous_lines = []
-        
-        for idx, column in enumerate(columns):
+        for column in columns:
             column.sort(key=lambda b: b["y0"])
-            layout_lines.append(f"=== Column {idx + 1} ===")
             col_texts = [b["text"] for b in column]
-            layout_lines.extend(col_texts)
-            layout_lines.append("")
             continuous_lines.extend(col_texts)
         
-        return "\n".join(layout_lines), " ".join(continuous_lines)
+        return " ".join(continuous_lines)
     
     async def extract(self) -> Dict:
         text_data = {
@@ -83,17 +78,14 @@ class TextExtractor:
             "total_pages": len(self.doc)
         }
         
-        layout_preserved_path = self.text_dir / "layout_preserved.txt"
         continuous_text_path = self.text_dir / "continuous_text.txt"
         
-        all_layout_parts = []
         all_continuous_parts = []
         
         for page_num in range(len(self.doc)):
             page = self.doc[page_num]
-            layout_text, continuous_text = self._extract_column_text(page)
+            continuous_text = self._extract_continuous_text(page)
             
-            all_layout_parts.append(f"--- Page {page_num + 1} ---\n{layout_text}\n")
             all_continuous_parts.append(continuous_text)
             
             text_data["pages"].append({
@@ -101,13 +93,10 @@ class TextExtractor:
                 "char_count": len(continuous_text)
             })
         
-        full_layout_text = "\n".join(all_layout_parts)
         full_continuous_text = " ".join(all_continuous_parts)
         
-        await self._save_text(full_layout_text, layout_preserved_path)
         await self._save_text(full_continuous_text, continuous_text_path)
         
-        text_data["layout_preserved_path"] = str(layout_preserved_path)
         text_data["continuous_text_path"] = str(continuous_text_path)
         
         return text_data

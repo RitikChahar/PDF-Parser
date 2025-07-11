@@ -3,7 +3,6 @@ import aiofiles
 import os
 import time
 import glob
-import gc
 from pathlib import Path
 from utils.logutils import log_info, log_success, log_error
 from src.parser import PDFParser
@@ -45,7 +44,6 @@ async def process_single_pdf(pdf_path: str, base_output_dir: str, semaphore: asy
             return 0
         finally:
             parser.close()
-            gc.collect()
 
 
 async def main():
