@@ -12,6 +12,10 @@ class TableExtractor:
         self.min_rows = 2
         self.min_cols = 2
 
+    def _is_empty_table(self, df):
+        cleaned_df = df.astype(str).replace('', None).replace(' ', None)
+        return cleaned_df.isnull().all().all()
+
     def _extract_tables_sync(self):
         tables_data = []
         
@@ -34,17 +38,18 @@ class TableExtractor:
             for i, table in enumerate(tables):
                 if table.df is not None and not table.df.empty:
                     if len(table.df) >= self.min_rows and len(table.df.columns) >= self.min_cols:
-                        table_filename = f"table_{i + 1}_lattice.csv"
-                        table_path = self.tables_dir / table_filename
-                        table.to_csv(str(table_path))
-                        tables_data.append({
-                            "table_index": i + 1,
-                            "page": table.page,
-                            "csv_path": str(table_path),
-                            "rows": len(table.df),
-                            "columns": len(table.df.columns),
-                            "extraction_method": "lattice"
-                        })
+                        if not self._is_empty_table(table.df):
+                            table_filename = f"table_{i + 1}_lattice.csv"
+                            table_path = self.tables_dir / table_filename
+                            table.to_csv(str(table_path))
+                            tables_data.append({
+                                "table_index": i + 1,
+                                "page": table.page,
+                                "csv_path": str(table_path),
+                                "rows": len(table.df),
+                                "columns": len(table.df.columns),
+                                "extraction_method": "lattice"
+                            })
         except Exception:
             pass
             
