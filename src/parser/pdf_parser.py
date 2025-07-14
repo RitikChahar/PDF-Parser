@@ -1,4 +1,3 @@
-import fitz
 import asyncio
 import time
 from pathlib import Path
@@ -16,24 +15,15 @@ class PDFParser:
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
-        self.doc = None
         
+        self.image_extractor = ImageExtractor(pdf_path, self.output_dir)
         self.table_extractor = TableExtractor(pdf_path, self.output_dir)
+        self.text_extractor = TextExtractor(pdf_path, self.output_dir)
         self.report_generator = ReportGenerator(self.output_dir)
-    
-    def _open_document(self):
-        if self.doc is None:
-            self.doc = fitz.open(self.pdf_path)
-    
-    def _close_document(self):
-        if self.doc:
-            self.doc.close()
-            self.doc = None
     
     async def extract_images(self) -> tuple[List[Dict], float]:
         start_time = time.time()
-        image_extractor = ImageExtractor(self.doc, self.output_dir)
-        result = await image_extractor.extract()
+        result = await self.image_extractor.extract()
         end_time = time.time()
         return result, end_time - start_time
     
@@ -45,8 +35,7 @@ class PDFParser:
     
     async def extract_text(self) -> tuple[Dict, float]:
         start_time = time.time()
-        text_extractor = TextExtractor(self.doc, self.output_dir)
-        result = await text_extractor.extract()
+        result = await self.text_extractor.extract()
         end_time = time.time()
         return result, end_time - start_time
     
@@ -54,8 +43,6 @@ class PDFParser:
         log_info("Starting PDF extraction")
         
         try:
-            self._open_document()
-            
             results = {
                 "pdf_path": self.pdf_path,
                 "output_directory": str(self.output_dir),
@@ -111,8 +98,9 @@ class PDFParser:
             log_success("PDF extraction completed")
             return results
             
-        finally:
-            self._close_document()
+        except Exception as e:
+            log_error(f"PDF extraction failed: {str(e)}")
+            raise
     
     def close(self):
-        self._close_document()
+        pass

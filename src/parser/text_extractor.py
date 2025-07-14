@@ -1,12 +1,14 @@
 import asyncio
 import aiofiles
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
+from unstructured.partition.pdf import partition_pdf
+from unstructured.documents.elements import Text, NarrativeText, Title, ListItem
 
 
 class TextExtractor:
-    def __init__(self, doc, output_dir: Path):
-        self.doc = doc
+    def __init__(self, pdf_path: str, output_dir: Path):
+        self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.text_dir = output_dir / "text"
         self.text_dir.mkdir(exist_ok=True)
@@ -15,85 +17,53 @@ class TextExtractor:
         async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
             await f.write(text)
     
-    def _extract_continuous_text(self, page):
-        page_dict = page.get_text("dict")
-        page_width = page.rect.width
-        text_blocks = []
+    def _extract_continuous_text(self):
+        elements = partition_pdf(
+            filename=self.pdf_path
+        )
         
-        for block in page_dict.get("blocks", []):
-            if "lines" not in block:
-                continue
-                
-            bbox = block["bbox"]
-            block_text = ""
-            for line in block["lines"]:
-                for span in line["spans"]:
-                    block_text += span["text"]
-            
-            if block_text.strip():
-                text_blocks.append({
-                    "x0": bbox[0],
-                    "y0": bbox[1],
-                    "text": block_text.strip()
-                })
+        pages_data = {}
+        continuous_parts = []
         
-        if not text_blocks:
-            return ""
+        for element in elements:
+            if isinstance(element, (Text, NarrativeText, Title, ListItem)):
+                text_content = str(element).strip()
+                if text_content:
+                    page_num = 1
+                    if hasattr(element, 'metadata') and hasattr(element.metadata, 'page_number'):
+                        page_num = element.metadata.page_number
+                    
+                    if page_num not in pages_data:
+                        pages_data[page_num] = []
+                    
+                    pages_data[page_num].append(text_content)
         
-        text_blocks.sort(key=lambda b: (b["x0"], b["y0"]))
+        total_pages = max(pages_data.keys()) if pages_data else 0
         
-        tolerance = page_width * 0.05
-        columns = []
-        current_column = []
+        for page_num in sorted(pages_data.keys()):
+            page_text = " ".join(pages_data[page_num])
+            continuous_parts.append(page_text)
         
-        for block in text_blocks:
-            if not current_column:
-                current_column.append(block)
-                continue
-                
-            last_block = current_column[-1]
-            gap = block["x0"] - last_block["x0"]
-            if gap <= tolerance:
-                current_column.append(block)
-            else:
-                columns.append(current_column)
-                current_column = [block]
-        
-        if current_column:
-            columns.append(current_column)
-        
-        columns.sort(key=lambda col: min(b["x0"] for b in col))
-        
-        continuous_lines = []
-        for column in columns:
-            column.sort(key=lambda b: b["y0"])
-            col_texts = [b["text"] for b in column]
-            continuous_lines.extend(col_texts)
-        
-        return " ".join(continuous_lines)
+        return continuous_parts, total_pages, pages_data
     
     async def extract(self) -> Dict:
+        continuous_parts, total_pages, pages_data = await asyncio.to_thread(self._extract_continuous_text)
+        
         text_data = {
             "pages": [],
-            "total_pages": len(self.doc)
+            "total_pages": total_pages
         }
         
         continuous_text_path = self.text_dir / "continuous_text.txt"
         
-        all_continuous_parts = []
-        
-        for page_num in range(len(self.doc)):
-            page = self.doc[page_num]
-            continuous_text = self._extract_continuous_text(page)
-            
-            all_continuous_parts.append(continuous_text)
-            
+        for page_num in sorted(pages_data.keys()):
+            page_text = " ".join(pages_data[page_num])
             text_data["pages"].append({
-                "page_number": page_num + 1,
-                "char_count": len(continuous_text)
+                "page_number": page_num,
+                "char_count": len(page_text)
             })
         
-        full_continuous_text = " ".join(all_continuous_parts)
+        full_continuous_text = " ".join(continuous_parts)
         
         await self._save_text(full_continuous_text, continuous_text_path)
         
