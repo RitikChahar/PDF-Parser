@@ -39,8 +39,8 @@ class PDFParser:
                 log_error(f"Image extraction failed: {str(e)}")
             
             try:
-                is_scanned = self.detector.is_scanned_pdf()
-                if is_scanned:
+                detection_result = self.detector.is_scanned_pdf()
+                if detection_result["is_scanned"]:
                     table_extractor = DoclingTableExtractor(self.pdf_path, self.output_dir)
                 else:
                     table_extractor = CamelotTableExtractor(self.pdf_path, self.output_dir)
