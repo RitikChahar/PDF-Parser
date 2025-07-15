@@ -3,7 +3,7 @@ import asyncio
 import io
 from pathlib import Path
 
-class TableExtractor:
+class CamelotTableExtractor:
     def __init__(self, pdf_path: str, output_dir: Path):
         self.pdf_path = pdf_path
         self.output_dir = output_dir
